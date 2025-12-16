@@ -2412,3 +2412,687 @@ Lines added: 81, lines removed: 1
 
 ---
 
+_**User (2025-12-15 18:24Z)**_
+
+部署好了，还是一样的问题[错误：数据流中断。无法解析。错误信息: API 响应错误]。在vorcel的buildlogs里显示三角包感叹号WARNING: You should not upload the `.next` directory.
+Installing dependencies...
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+构建警告不影响运行。问题在后端 API。先检查代码，然后指导查看 Vercel 的 Function Logs 以定位真实错误。
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Volumes/D/finalproject/pages/api/chat.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Volumes/D/finalproject/services/DataService.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Volumes/D/finalproject/services/AlienCouncilService.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+先查看 Vercel 的 Function Logs 获取真实错误。同时修复一个可能的 Gemini API 请求格式问题。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/services/DataService.js</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 6
+
+```diff
+@@ -24,12 +24,8 @@
+    try {
+      // 组合符合 Gemini REST API 的请求结构
++     // systemInstruction 应该是字符串，不是对象
+      const body = {
+        contents,
+-       systemInstruction: systemInstruction
+-         ? {
+-             role: 'system',
+-             parts: [{ text: systemInstruction }]
+-           }
+-         : undefined,
++       ...(systemInstruction &amp;&amp; { systemInstruction: { parts: [{ text: systemInstruction }] } }),
+        generationConfig: {
+          temperature
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/pages/api/chat.js</summary>
+
+**Chunk 1**
+Lines added: 4, lines removed: 1
+
+```diff
+@@ -46,6 +46,9 @@
+    } catch (error) {
+      console.error('Critical API Process Error:', error);
++     // 在 Vercel 上，错误信息会出现在 Function Logs 中
++     // 这里返回详细的错误信息给前端，方便调试
+      return res.status(500).json({
+-       error: error.message || 'Internal Server Error'
++       error: error.message || 'Internal Server Error',
++       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+已修复一个可能的 Gemini API 格式问题。请按以下步骤操作：
+
+## 步骤 1：查看 Vercel 的真实错误日志
+
+1. 在 Vercel Dashboard 打开你的项目
+2. 点击顶部 "Functions" 标签
+3. 找到 `/api/chat` 这个函数
+4. 点击它，查看 "Logs" 标签页
+5. 在网页上发送一条消息，触发错误
+6. 回到 Logs，复制最新的错误信息（应该能看到类似 `Gemini HTTP Error:` 或 `[配置错误]` 的详细内容）
+
+把这段日志发给我，我就能知道具体问题。
+
+---
+
+## 步骤 2：重新部署修复后的代码
+
+我已经修复了 `systemInstruction` 的格式问题。现在你需要：
+
+```bash
+# 提交修复
+git add .
+git commit -m "修复 Gemini API 请求格式"
+git push
+```
+
+Vercel 会自动重新部署。或者你也可以在 Vercel Dashboard 点击 "Redeploy"。
+
+---
+
+## 步骤 3：确认环境变量
+
+在 Vercel Dashboard → Settings → Environment Variables，确认：
+- `GEMINI_API_KEY` 已添加
+- Environment 选择了 `Production`（或你部署的环境）
+
+---
+
+先完成步骤 1，把 Vercel Function Logs 里的错误信息发给我，我继续帮你定位问题。
+
+---
+
+_**User (2025-12-15 18:24Z)**_
+
+我可以不用gemini，改成别的吗？参考这个python代码的方式import requests
+
+import json
+
+
+
+def call_zhipu_api(messages, model="glm-4-flash"):
+
+    url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+
+
+
+    headers = {
+
+        "Authorization": "6d990e86b2e4434c9b120cd073ac8e45.X2Z3loSRC0UrZ1yH",
+
+        "Content-Type": "application/json"
+
+    }
+
+
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+改用智谱AI（ZhipuAI）API。修改相关代码以适配智谱AI的请求格式。
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Volumes/D/finalproject/services/DataService.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Volumes/D/finalproject/services/RoleService.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Volumes/D/finalproject/services/AlienCouncilService.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+将代码改为使用智谱AI API，适配其请求格式。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/services/DataService.js</summary>
+
+**Chunk 1**
+Lines added: 31, lines removed: 36
+
+```diff
+@@ -1,68 +1,63 @@
+- // services/DataService.js - 针对 Vercel 部署的 Gemini JS SDK 封装
++ // services/DataService.js - 智谱AI (ZhipuAI) API 封装
+  
+- const apiKey = process.env.GEMINI_API_KEY;
+- // 使用 REST API 需要完整的模型路径：models/模型名
+- const defaultModel = 'models/gemini-1.5-flash';
++ const apiKey = process.env.ZHIPU_API_KEY;
++ const defaultModel = 'glm-4-flash';
+  
+  if (!apiKey) {
+-   console.error('[配置警告] GEMINI_API_KEY 未设置。');
++   console.error('[配置警告] ZHIPU_API_KEY 未设置。');
+  }
+  
+  /**
+-  * 核心 API 调用函数
++  * 核心 API 调用函数 - 调用智谱AI
++  * @param {Object} params
++  * @param {Array} params.messages - OpenAI 兼容格式的消息数组 [{ role: 'system'|'user'|'assistant', content: '...' }]
++  * @param {number} params.temperature - 温度参数，默认 0.7
++  * @param {string} params.model - 模型名称，默认 'glm-4-flash'
+   */
+- export async function callGeminiApi({
+-   systemInstruction,
+-   contents,
++ export async function callZhipuApi({
++   messages,
+    temperature = 0.7,
+    model = defaultModel
+  }) {
+    if (!apiKey) {
+-     throw new Error('[配置错误] 无法连接 AI 核心：GEMINI_API_KEY 未设置。');
++     throw new Error('[配置错误] 无法连接 AI 核心：ZHIPU_API_KEY 未设置。');
+    }
+  
+    try {
+-     // 组合符合 Gemini REST API 的请求结构
+-     // systemInstruction 应该是字符串，不是对象
++     const url = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
++     
+      const body = {
+-       contents,
+-       ...(systemInstruction &amp;&amp; { systemInstruction: { parts: [{ text: systemInstruction }] } }),
+-       generationConfig: {
+-         temperature
+-       }
++       model,
++       messages,
++       temperature
+      };
+  
+-     const response = await fetch(
+-       &#96;https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}&#96;,
+-       {
+-         method: 'POST',
+-         headers: {
+-           'Content-Type': 'application/json'
+-         },
+-         body: JSON.stringify(body)
+-       }
+-     );
++     const response = await fetch(url, {
++       method: 'POST',
++       headers: {
++         'Authorization': &#96;Bearer ${apiKey}&#96;,
++         'Content-Type': 'application/json'
++       },
++       body: JSON.stringify(body)
++     });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+-       console.error('Gemini HTTP Error:', response.status, errorText);
+-       throw new Error(&#96;Gemini HTTP ${response.status}: ${errorText}&#96;);
++       console.error('ZhipuAI HTTP Error:', response.status, errorText);
++       throw new Error(&#96;ZhipuAI HTTP ${response.status}: ${errorText}&#96;);
+      }
+  
+      const data = await response.json();
+  
+-     const text =
+-       data?.candidates?.[0]?.content?.parts
+-         ?.map((p) =&gt; p.text || '')
+-         .join('') || '';
++     // 智谱AI 返回格式：{ choices: [{ message: { content: "..." } }] }
++     const text = data?.choices?.[0]?.message?.content || '';
+  
+      if (!text) {
+-       throw new Error('Gemini 返回内容为空或无法解析。');
++       throw new Error('ZhipuAI 返回内容为空或无法解析。');
+      }
+  
+      return text;
+    } catch (error) {
+-     console.error('Gemini API Error:', error);
+-     // 如果是 ConnectTimeoutError，在 Vercel 上它可能就不会发生了
++     console.error('ZhipuAI API Error:', error);
+      throw new Error(&#96;[AI系统故障] 核心议会连接中断。Error: ${error.message}&#96;);
+    }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/services/RoleService.js</summary>
+
+**Chunk 1**
+Lines added: 13, lines removed: 7
+
+```diff
+@@ -58,13 +58,19 @@
+          &#96;;
+  
+-    
+-     const contents = history.map(msg =&gt; ({
+-         role: msg.role === 'assistant' ? 'model' : 'user', 
+-         parts: [{ text: msg.content }]
+-     }));
++     // 3. 转换为智谱AI (OpenAI兼容) 格式的 messages 数组
++     const messages = [
++         {
++             role: 'system',
++             content: systemInstruction
++         },
++         // 将历史对话转换为 user/assistant 格式
++         ...history.map(msg =&gt; ({
++             role: msg.role === 'assistant' || msg.role === 'ai' ? 'assistant' : 'user',
++             content: msg.content
++         }))
++     ];
+  
+      return {
+-         systemInstruction: systemInstruction,
+-         contents: contents
++         messages
+      };
+  }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/services/AlienCouncilService.js</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -1,7 +1,7 @@
+  // services/AlienCouncilService.js
+- // 负责把“外星议会”的角色设定 + 历史对话，打包给 Gemini SDK 调用
++ // 负责把“外星议会”的角色设定 + 历史对话，打包给智谱AI API 调用
+  
+  import { buildApiMessages } from './RoleService';
+- import { callGeminiApi } from './DataService';
++ import { callZhipuApi } from './DataService';
+  
+  export async function processAlienResponse(userInput) {
+```
+
+**Chunk 2**
+Lines added: 6, lines removed: 7
+
+```diff
+@@ -15,16 +15,15 @@
+      ];
+  
+-     // 1. 基于角色设定 + 记忆，构造 systemInstruction 和 contents
+-     const { systemInstruction, contents } = await buildApiMessages(history);
++     // 1. 基于角色设定 + 记忆，构造 messages 数组（包含 system message）
++     const { messages } = await buildApiMessages(history);
+  
+-     // 2. 调用封装好的 Gemini SDK
+-     const text = await callGeminiApi({
+-       systemInstruction,
+-       contents
++     // 2. 调用封装好的智谱AI API
++     const text = await callZhipuApi({
++       messages
+      });
+  
+      return text || '';
+    } catch (err) {
+-     console.error('Alien Council Gemini Error:', err);
++     console.error('Alien Council ZhipuAI Error:', err);
+      // 将底层错误信息透传出去，方便前端展示和调试
+      throw new Error(err?.message || '[AI系统故障] 核心议会连接中断。');
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 3 files</summary>
+      
+Lint paths:
+
+- `/Volumes/D/finalproject/services/DataService.js`
+- `/Volumes/D/finalproject/services/RoleService.js`
+- `/Volumes/D/finalproject/services/AlienCouncilService.js`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+已将所有代码从 Gemini 切换到智谱AI。更新部署文档：
+
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Volumes/D/finalproject/DEPLOY.md</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/DEPLOY.md</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -5,7 +5,7 @@
+  1. **确保代码已提交到 Git 仓库**（GitHub / GitLab / Bitbucket）
+  
+- 2. **准备 Gemini API Key**
+-    - 访问 [Google AI Studio](https://makersuite.google.com/app/apikey)
+-    - 创建或获取你的 API Key
++ 2. **准备智谱AI API Key**
++    - 访问 [智谱AI开放平台](https://open.bigmodel.cn/)
++    - 注册/登录账号，创建或获取你的 API Key
+  
+  ## 部署步骤
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/DEPLOY.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -24,6 +24,6 @@
+  3. **配置环境变量**（⚠️ 关键步骤）
+     - 在 "Environment Variables" 页面，添加：
+-      - **Name**: &#96;GEMINI_API_KEY&#96;
+-      - **Value**: 你的 Gemini API Key
++      - **Name**: &#96;ZHIPU_API_KEY&#96;
++      - **Value**: 你的智谱AI API Key
+       - **Environment**: 选择 &#96;Production&#96;（如果 Preview 也需要，再添加一条选 &#96;Preview&#96;）
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/DEPLOY.md</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -49,5 +49,5 @@
+  
+  # 4. 设置环境变量
+- vercel env add GEMINI_API_KEY
++ vercel env add ZHIPU_API_KEY
+  # 按提示输入你的 API Key，选择 Production 环境
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/DEPLOY.md</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -58,6 +58,6 @@
+  ## 常见问题排查
+  
+- ### 问题 1: 部署后仍然报错 "GEMINI_API_KEY 未设置"
+- - **解决**: 检查 Vercel 项目 Settings → Environment Variables 里是否已添加 &#96;GEMINI_API_KEY&#96;，并确保选择了正确的环境（Production/Preview）
++ ### 问题 1: 部署后仍然报错 "ZHIPU_API_KEY 未设置"
++ - **解决**: 检查 Vercel 项目 Settings → Environment Variables 里是否已添加 &#96;ZHIPU_API_KEY&#96;，并确保选择了正确的环境（Production/Preview）
+  
+  ### 问题 2: 构建失败
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Volumes/D/finalproject/DEPLOY.md</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: 4
+
+```diff
+@@ -66,9 +66,10 @@
+    - Next.js 版本不兼容（当前使用 &#96;^14.1.0&#96;）
+  
+- ### 问题 3: 运行时错误 "Connect Timeout"
+- - **解决**: 如果本地连不上但 Vercel 能连上，这是正常的（网络环境不同）。如果 Vercel 也超时，检查：
+-   - API Key 是否有效
+-   - 是否有配额限制
++ ### 问题 3: 运行时错误 "Connect Timeout" 或 API 调用失败
++ - **解决**: 
++   - 检查 API Key 是否有效（智谱AI的API Key格式通常是 &#96;xxx.xxx.xxx&#96;）
++   - 检查是否有配额限制或余额不足
+    - 查看 Vercel Function Logs 里的详细错误信息
++   - 确认使用的是正确的模型名称（默认 &#96;glm-4-flash&#96;）
+  
+  ## 查看日志
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+
+
+已完成：已将代码从 Gemini 切换到智谱AI。主要修改如下：
+
+## 已完成的修改
+
+1. **`services/DataService.js`** - 改为调用智谱AI API
+   - 使用 `https://open.bigmodel.cn/api/paas/v4/chat/completions`
+   - 环境变量改为 `ZHIPU_API_KEY`
+   - 模型默认 `glm-4-flash`
+
+2. **`services/RoleService.js`** - 改为返回 OpenAI 兼容的 `messages` 格式
+
+3. **`services/AlienCouncilService.js`** - 改为调用 `callZhipuApi`
+
+4. **`DEPLOY.md`** - 更新部署文档
+
+---
+
+## 接下来你需要做的
+
+### 1. 更新本地环境变量
+
+在 `.env.local` 文件中，把：
+```bash
+GEMINI_API_KEY=你的key
+```
+改成：
+```bash
+ZHIPU_API_KEY=你的智谱AI的key
+```
+
+### 2. 更新 Vercel 环境变量
+
+在 Vercel Dashboard：
+1. 进入项目 → Settings → Environment Variables
+2. 删除旧的 `GEMINI_API_KEY`（如果有）
+3. 添加新的：
+   - Name: `ZHIPU_API_KEY`
+   - Value: 你的智谱AI API Key（格式类似 `6d990e86b2e4434c9b120cd073ac8e45.X2Z3loSRC0UrZ1yH`）
+   - Environment: `Production`
+
+### 3. 提交代码并重新部署
+
+```bash
+git add .
+git commit -m "切换到智谱AI API"
+git push
+```
+
+Vercel 会自动重新部署，或者你在 Dashboard 点击 "Redeploy"。
+
+---
+
+## 测试
+
+部署完成后，在网页上发送一条消息，应该能正常收到智谱AI生成的外星人回复。
+
+如果还有问题，把 Vercel Function Logs 里的错误信息发给我，我继续帮你排查。
+
+---
+

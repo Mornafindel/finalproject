@@ -57,14 +57,20 @@ export async function buildApiMessages(history) {
         ---
         `;
 
-   
-    const contents = history.map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user', 
-        parts: [{ text: msg.content }]
-    }));
+    // 3. 转换为智谱AI (OpenAI兼容) 格式的 messages 数组
+    const messages = [
+        {
+            role: 'system',
+            content: systemInstruction
+        },
+        // 将历史对话转换为 user/assistant 格式
+        ...history.map(msg => ({
+            role: msg.role === 'assistant' || msg.role === 'ai' ? 'assistant' : 'user',
+            content: msg.content
+        }))
+    ];
 
     return {
-        systemInstruction: systemInstruction,
-        contents: contents
+        messages
     };
 }
