@@ -45,8 +45,11 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Critical API Process Error:', error);
+    // 在 Vercel 上，错误信息会出现在 Function Logs 中
+    // 这里返回详细的错误信息给前端，方便调试
     return res.status(500).json({
-      error: error.message || 'Internal Server Error'
+      error: error.message || 'Internal Server Error',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }

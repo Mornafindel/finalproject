@@ -23,14 +23,10 @@ export async function callGeminiApi({
 
   try {
     // 组合符合 Gemini REST API 的请求结构
+    // systemInstruction 应该是字符串，不是对象
     const body = {
       contents,
-      systemInstruction: systemInstruction
-        ? {
-            role: 'system',
-            parts: [{ text: systemInstruction }]
-          }
-        : undefined,
+      ...(systemInstruction && { systemInstruction: { parts: [{ text: systemInstruction }] } }),
       generationConfig: {
         temperature
       }
