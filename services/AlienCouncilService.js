@@ -1,40 +1,33 @@
 // services/AlienCouncilService.js
+// 负责把“外星议会”的角色设定 + 历史对话，打包给 Gemini SDK 调用
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+import { buildApiMessages } from './RoleService';
+import { callGeminiApi } from './DataService';
 
-// 调试：确认环境变量是否加载
-console.log('[DEBUG] GEMINI_API_KEY loaded:', !!GEMINI_API_KEY);
-
-async function processAlienResponse(userInput) {
+export async function processAlienResponse(userInput) {
   try {
-    // 调用 Gemini API
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+    // 当前只有单轮输入，如需多轮对话，可在这里把前端传来的 history 一并传入
+    const history = [
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { parts: [{ text: userInput }] }
-          ]
-        }),
+        role: 'user',
+        content: userInput
       }
-    );
+    ];
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error('Gemini API response error:', text);
-      throw new Error(text);
-    }
+    // 1. 基于角色设定 + 记忆，构造 systemInstruction 和 contents
+    const { systemInstruction, contents } = await buildApiMessages(history);
 
-    const data = await response.json();
-    const result = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return result;
+    // 2. 调用封装好的 Gemini SDK
+    const text = await callGeminiApi({
+      systemInstruction,
+      contents
+    });
 
+    return text || '';
   } catch (err) {
     console.error('Alien Council Gemini Error:', err);
-    throw new Error('[AI系统故障] 核心议会连接中断。');
+    // 将底层错误信息透传出去，方便前端展示和调试
+    throw new Error(err?.message || '[AI系统故障] 核心议会连接中断。');
   }
 }
 
-module.exports = { processAlienResponse };

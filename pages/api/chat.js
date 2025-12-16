@@ -1,75 +1,52 @@
-
-import { saveLatestReply } from '../../services/DataService'; 
-import { 
-    shouldExitByUser, 
-    preProcessUserInput, 
-    postProcessAiResponse,
-    shouldExitByAi
-} from '../../services/LogicService';
+// pages/api/chat.js
 
 import { processAlienResponse } from '../../services/AlienCouncilService';
-
-
-// ... (所有 import 语句)
-
-// ===================================
-// DEBUG: 检查 API Key 是否已加载 (添加这两行)
-// ===================================
-console.log("DEBUG: GEMINI_API_KEY loaded:", !!process.env.GEMINI_API_KEY); 
-// ===================================
-
+import {
+  shouldExitByUser,
+  preProcessUserInput,
+  postProcessAiResponse,
+  shouldExitByAi
+} from '../../services/LogicService';
 
 export default async function handler(req, res) {
-    
-    if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method Not Allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  try {
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
     }
-    
-    
-    const { input, history } = req.body; 
 
-    if (!input || !Array.isArray(history)) {
-        return res.status(400).json({ message: 'Invalid input or history format.' });
+    if (shouldExitByUser(message)) {
+      return res.status(200).json({
+        reply: '【通信终止】外星议会已结束本次观测。'
+      });
     }
 
-    try {
-        
-        if (shouldExitByUser(input)) {
-            return res.status(200).json({ reply: '再见', exit: true });
-        }
-        
-       
-        const processedInput = preProcessUserInput(input);
+    const processedInput = preProcessUserInput(message);
 
-        
-        const updatedHistory = [...history, { role: "user", content: processedInput }];
+    const alienResult = await processAlienResponse(processedInput);
 
-        
-        const rawResponse = await processAlienResponse(updatedHistory, processedInput); // <--- 修改点 2
+    // processAlienResponse 现在直接返回文本字符串
+    const finalReply = postProcessAiResponse(alienResult);
 
-        
-        const finalResponse = postProcessAiResponse(rawResponse);
-
-        
-        if (shouldExitByAi(finalResponse)) {
-            return res.status(200).json({ reply: finalResponse, exit: true });
-        }
-        
-        
-        await saveLatestReply(finalResponse); 
-
-        
-        res.status(200).json({ 
-            reply: finalResponse, 
-            exit: false 
-        });
-
-    } catch (error) {
-        
-        console.error("Critical API Process Error:", error);
-        res.status(500).json({ 
-            message: 'Internal AI processing failed.', 
-            error: error.message 
-        });
+    if (shouldExitByAi(finalReply)) {
+      return res.status(200).json({
+        reply: finalReply,
+        exit: true
+      });
     }
+
+    return res.status(200).json({
+      reply: finalReply
+    });
+  } catch (error) {
+    console.error('Critical API Process Error:', error);
+    return res.status(500).json({
+      error: error.message || 'Internal Server Error'
+    });
+  }
 }

@@ -1,3 +1,5 @@
+// pages/index.js
+
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes, createGlobalStyle } from 'styled-components';
 
@@ -171,17 +173,17 @@ export default function Chat() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    input: userInput,
-                    // 传递 UI 历史记录 (不包含初始 System Prompt)
-                    history: updatedHistory.slice(1), 
+                    // 与后端 API /api/chat 的参数保持一致
+                    message: userInput,
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error('API 响应错误');
-            }
-
+            // 先解析后端返回的 body，再根据其中的 error 提示具体问题
             const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data?.error || 'API 响应错误');
+            }
             
             // 3. 更新 AI 回复到历史记录
             setHistory((prevHistory) => [
