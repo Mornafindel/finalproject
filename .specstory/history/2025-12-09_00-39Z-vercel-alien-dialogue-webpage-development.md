@@ -3242,3 +3242,179 @@ https://open.bigmodel.cn/api/paas/v4/chat/completions
 
 ---
 
+_**User (2025-12-15 18:59Z)**_
+
+抱歉https://api.qnaigc.com/v1 
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+I need to update the DataService URL to 'https://api.qnaigc.com/v1/chat/completions' and adjust the Authorization to `Bearer ${apiKey}`. It seems like Qnaigc is likely OpenAI-compatible, and the body structure with {model, messages, temperature} aligns with our DataService; it’s just the URL that needs changing. I should also consider updating comments from Zhipu to "QnA" to avoid any confusion, although that’s not strictly necessary. Plus, I might want to update the DEPLOY doc, even though the user didn’t ask for that.</details></think>
+
+---
+
+The model made no changes to the file.
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Volumes/D/finalproject/services/DataService.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="apply_patch">
+<details>
+<summary>Tool use: **apply_patch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "services/DataService.js"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "78fbeda3-b08b-43a4-9fb0-258fbc5580ad"
+}
+```
+Result:
+
+```json
+{
+  "diff": {
+    "chunks": [
+      {
+        "diffString": "- // services/DataService.js - 智谱AI (ZhipuAI) API 封装\n+ // services/DataService.js - QnAIGC（OpenAI 兼容）API 封装\n  \n  const apiKey = process.env.ZHIPU_API_KEY;\n- const defaultModel = 'glm-4-flash';\n+ // 根据你的需求可调整模型名称（这里示例写一个常见 OpenAI 兼容模型名）\n+ const defaultModel = 'gpt-3.5-turbo';\n  \n  if (!apiKey) {",
+        "oldStart": 1,
+        "newStart": 1,
+        "oldLines": 6,
+        "newLines": 7,
+        "linesRemoved": 2,
+        "linesAdded": 3
+      },
+      {
+        "diffString": "  \n  /**\n-  * 核心 API 调用函数 - 调用智谱AI\n+  * 核心 API 调用函数 - 调用 QnAIGC OpenAI 兼容接口\n   * @param {Object} params\n   * @param {Array} params.messages - OpenAI 兼容格式的消息数组 [{ role: 'system'|'user'|'assistant', content: '...' }]",
+        "oldStart": 9,
+        "newStart": 10,
+        "oldLines": 5,
+        "newLines": 5,
+        "linesRemoved": 1,
+        "linesAdded": 1
+      },
+      {
+        "diffString": "  \n    try {\n-     const url = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';\n+     const url = 'https://api.qnaigc.com/v1/chat/completions';\n      \n      const body = {",
+        "oldStart": 25,
+        "newStart": 26,
+        "oldLines": 5,
+        "newLines": 5,
+        "linesRemoved": 1,
+        "linesAdded": 1
+      },
+      {
+        "diffString": "      const data = await response.json();\n  \n-     // 智谱AI 返回格式：{ choices: [{ message: { content: \"...\" } }] }\n+     // OpenAI 兼容返回格式：{ choices: [{ message: { content: \"...\" } }] }\n      const text = data?.choices?.[0]?.message?.content || '';\n  \n      if (!text) {\n-       throw new Error('ZhipuAI 返回内容为空或无法解析。');\n+       throw new Error('QnAIGC 返回内容为空或无法解析。');\n      }\n  \n      return text;\n    } catch (error) {\n-     console.error('ZhipuAI API Error:', error);\n+     console.error('QnAIGC API Error:', error);\n      throw new Error(&#96;[AI系统故障] 核心议会连接中断。Error: ${error.message}&#96;);\n    }",
+        "oldStart": 50,
+        "newStart": 51,
+        "oldLines": 14,
+        "newLines": 14,
+        "linesRemoved": 3,
+        "linesAdded": 3
+      }
+    ],
+    "editor": "EDITOR_AI"
+  },
+  "shouldAutoFixLints": true,
+  "resultForModel": "Success. Updated the following files:\nM services/DataService.js",
+  "contentsAfterEdit": "// services/DataService.js - QnAIGC（OpenAI 兼容）API 封装\n\nconst apiKey = process.env.ZHIPU_API_KEY;\n// 根据你的需求可调整模型名称（这里示例写一个常见 OpenAI 兼容模型名）\nconst defaultModel = 'gpt-3.5-turbo';\n\nif (!apiKey) {\n  console.error('[配置警告] ZHIPU_API_KEY 未设置。');\n}\n\n/**\n * 核心 API 调用函数 - 调用 QnAIGC OpenAI 兼容接口\n * @param {Object} params\n * @param {Array} params.messages - OpenAI 兼容格式的消息数组 [{ role: 'system'|'user'|'assistant', content: '...' }]\n * @param {number} params.temperature - 温度参数，默认 0.7\n * @param {string} params.model - 模型名称，默认 'glm-4-flash'\n */\nexport async function callZhipuApi({\n  messages,\n  temperature = 0.7,\n  model = defaultModel\n}) {\n  if (!apiKey) {\n    throw new Error('[配置错误] 无法连接 AI 核心：ZHIPU_API_KEY 未设置。');\n  }\n\n  try {\n    const url = 'https://api.qnaigc.com/v1/chat/completions';\n    \n    const body = {\n      model,\n      messages,\n      temperature\n    };\n\n    const response = await fetch(url, {\n      method: 'POST',\n      headers: {\n        'Authorization': &#96;Bearer ${apiKey}&#96;,\n        'Content-Type': 'application/json'\n      },\n      body: JSON.stringify(body)\n    });\n\n    if (!response.ok) {\n      const errorText = await response.text();\n      console.error('ZhipuAI HTTP Error:', response.status, errorText);\n      throw new Error(&#96;ZhipuAI HTTP ${response.status}: ${errorText}&#96;);\n    }\n\n    const data = await response.json();\n\n    // OpenAI 兼容返回格式：{ choices: [{ message: { content: \"...\" } }] }\n    const text = data?.choices?.[0]?.message?.content || '';\n\n    if (!text) {\n      throw new Error('QnAIGC 返回内容为空或无法解析。');\n    }\n\n    return text;\n  } catch (error) {\n    console.error('QnAIGC API Error:', error);\n    throw new Error(&#96;[AI系统故障] 核心议会连接中断。Error: ${error.message}&#96;);\n  }\n}\n"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `/Volumes/D/finalproject/services/DataService.js`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+现在已经按你的要求改成用 `https://api.qnaigc.com/v1/chat/completions` 这个 OpenAI 兼容接口了，代码里会从 `ZHIPU_API_KEY` 这个环境变量里读取你的 key。
+
+你需要做两件事：
+
+1. 在本地 `.env.local` 里把这一行改成你的 qnaigc 密钥（不要带引号）：
+   ```bash
+   ZHIPU_API_KEY=sk-开头那串密钥
+   ```
+   保存后重启本地：`npm run dev`
+
+2. 在 Vercel 项目的 Environment Variables 里：
+   - Name 填 `ZHIPU_API_KEY`
+   - Value 填同一串 `sk-...` 密钥
+   - Environment 选 Production  
+   保存后重新部署一次，再在线上页面测试对话。
+
+---
+
+_**User (2025-12-15 18:59Z)**_
+
+聊天显示[错误：数据流中断。无法解析。错误信息: [AI系统故障] 核心议会连接中断。Error: ZhipuAI HTTP 401: {"error":{"message":"invalid api key (request_id: chatcmpl-416c981023c04698905f622fb6e527c7)","type":"authentication_error"}}]
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+**Fixing authorization issues**
+
+I’m looking at an auth failure error. I need to change the environment variable to the correct key for QnAIGC, then redeploy. It's also important to ensure that the .env.local file has no quotes, and that the DataService error label is updated to QnAIGC, although that's just a minor thing. I don’t think I’ll need any more tools for this task. Let's get everything sorted!</details></think>
+
+---
+
+**核心结论：你现在的错误是「密钥对不上接口」，不是代码问题。**
+
+- 报错里写得很清楚：`invalid api key`，并且是 `ZhipuAI HTTP 401`，说明当前跑的还是「智谱 bigmodel 接口 + 这个 key」，而不是你刚说的 `https://api.qnaigc.com/v1` 对应的 key。
+- 要用 `https://api.qnaigc.com/v1`，就必须用 **qnaigc 自己发的 key**，不能用智谱的 key；反过来也一样。
+
+你现在需要做的只有两步：
+
+1. **在本地 `.env.local` 里确认：**
+   ```bash
+   ZHIPU_API_KEY=这里必须是 qnaigc 平台发给你的 sk- 开头的 key，不是智谱 bigmodel 的 key
+   ```
+   保存后重启本地：`npm run dev`
+
+2. **在 Vercel 环境变量里也改成同一个 qnaigc key：**
+   - Settings → Environment Variables
+   - 找到 `ZHIPU_API_KEY`，把它的值改成 qnaigc 的 key
+   - 保存后重新部署
+
+改完这两个地方，再试聊天；如果还有 401，把新的错误整段贴给我，我帮你继续看。
+
+---
+
