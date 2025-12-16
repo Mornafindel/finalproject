@@ -3185,3 +3185,60 @@ npm run dev
 
 ---
 
+_**User (2025-12-15 18:59Z)**_
+
+将智谱ai改成这个api。key：sk-a8f49f83768ba63e64b81432975a9d3c59680a3c4b97315931ce863b29518872。   url：
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+### 关键先说在前面
+
+- 你刚才发的是**真实密钥**，千万不要再发到任何公开地方，也不要写死在代码里提交到 Git。  
+- 我不会保存或再次显示你的密钥，只会告诉你怎么安全使用。
+
+---
+
+### 1. 在本地 `.env.local` 里配置密钥
+
+打开项目根目录下的 `.env.local`，改成这样（把下面的 `...` 换成你刚才的那串密钥）：
+
+```bash
+ZHIPU_API_KEY=你的密钥放这里
+```
+
+注意：不要加引号。
+
+---
+
+### 2. 在 Vercel 上配置同名环境变量
+
+Vercel Dashboard → 你的项目 → Settings → Environment Variables：
+
+- **Name**: `ZHIPU_API_KEY`  
+- **Value**: 同一串密钥  
+- **Environment**: 选 `Production`（Preview 也要的话再加一条）
+
+保存后重新部署。
+
+---
+
+### 3. 我需要你补充一件事：**API 的 URL**
+
+你说「改成这个 api。key: ... url：」，但 URL 还没写出来。  
+现在 `DataService.js` 里我默认用的是智谱官方地址：
+
+```text
+https://open.bigmodel.cn/api/paas/v4/chat/completions
+```
+
+如果你要用的就是这个，就回复：「用 open.bigmodel.cn 这个就行」。  
+如果你有别的网关 / 代理地址，请把 **完整 URL** 发给我（只发 URL，不要再发密钥），我再帮你把 `services/DataService.js` 里的 `url` 精确改成你要用的那个接口。
+
+---
+
