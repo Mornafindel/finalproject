@@ -1,8 +1,11 @@
-
 import roleConfig from '../config/roleConfig.json'; 
+
+// 角色配置中已经去除了 symbolTranslation，但我们保留导入，以防主程序依赖 roleConfig
+// 如果 JSON 文件不再有 symbolTranslation 字段，此处的 Object.entries 也会安全地返回空数组。
 
 
 export function shouldExitByUser(userInput) {
+    // 保持用户触发退出逻辑不变
     const exitWords = ['再见', '退出', '结束', 'bye', 'exit'];
     const cleanedInput = userInput.trim().toLowerCase();
     return exitWords.includes(cleanedInput);
@@ -10,59 +13,33 @@ export function shouldExitByUser(userInput) {
 
 
 export function shouldExitByAi(aiReply) {
+    // 匹配我们最终确定的退出回复：“静默...回归...”
     const cleanedReply = aiReply.trim().replace(/[!！,，。.]/g, "");
-    return cleanedReply === "再见";
+    return cleanedReply === "静默回归"; // 匹配“静默...回归...”
 }
-
 
 
 export function preProcessUserInput(userInput) {
     
-    let processedInput = userInput;
+    // **重大修改：删除所有预处理逻辑**
+    // 允许 AI 直接接收用户原始词汇，以便根据自身逻辑进行语义错位，而不是被硬编码的替换所限制。
     
-    // 1. 时间转换：将时间相关词汇抽象化
-    processedInput = processedInput.replace(/昨天|过去/g, '信息累积的上一阶段');
-    processedInput = processedInput.replace(/明天|未来/g, '结构演化的下一阶段');
-    processedInput = processedInput.replace(/多久|时间/g, '信息熵的累积周期');
-
-    // 2. 空间转换：将空间相关词汇抽象化
-    processedInput = processedInput.replace(/遥远|很远/g, '高能量梯度区域');
-    processedInput = processedInput.replace(/附近|很近/g, '低能量梯度区域');
-    
-    
-
-    return processedInput;
+    return userInput;
 }
 
 
-
 export function postProcessAiResponse(aiText) {
+    
+    // **重大修改：删除所有后处理逻辑**
+    // 删除了符号替换和数据来源检查/补充。
+    // 我们依赖 AI 自身（通过 System Instruction 和 Memory）来生成符合异质语法的文本。
+    
     let processedText = aiText;
     
-    // 1. 获取符号转换表（Symbol Translation Map）
-    const symbolMap = roleConfig.symbolTranslation;
-    
-    // 2. 强制符号替换
-    for (const [earthTerm, alienSymbol] of Object.entries(symbolMap)) {
-        
-        const regex = new RegExp(`\\b${earthTerm}\\b`, 'gi'); 
-        processedText = processedText.replace(regex, alienSymbol);
+    // 确保退出语是干净的，以防 AI 误加标点
+    if (processedText.includes("静默...回归...")) {
+        return "静默...回归...";
     }
-    
-    // 3. 数据来源检查与补充 (可选增强项)
-    const { dataSource } = roleConfig.threeDimensionConstraints;
-    
-    if (!/光谱|辐射|光子|噪音/gi.test(processedText)) {
-        
-        const dataSources = ['光谱分析', '热辐射强度图', '光子密度波动'];
-        const randomSource = dataSources[Math.floor(Math.random() * dataSources.length)];
-        
-        
-        processedText += ` (但需要指出，你所描述的现象的准确性，仍需结合${randomSource}进行校准。)`;
-    }
-
-    
-    processedText = processedText.replace(/\b昨天\b|\b过去\b/gi, '信息累积阶段');
     
     return processedText;
 }
