@@ -3418,3 +3418,130 @@ I’m looking at an auth failure error. I need to change the environment variabl
 
 ---
 
+_**User (2025-12-15 18:59Z)**_
+
+那还是不要前面那个了，再帮我改回智谱吧
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="apply_patch">
+<details>
+<summary>Tool use: **apply_patch**</summary>
+
+
+Parameters:
+
+```json
+{
+  "relativeWorkspacePath": "services/DataService.js"
+}
+```
+Additional data:
+
+```json
+{
+  "codeblockId": "937d4533-7cd0-4f22-9773-803fce035f4a"
+}
+```
+Result:
+
+```json
+{
+  "diff": {
+    "chunks": [
+      {
+        "diffString": "- // services/DataService.js - QnAIGC（OpenAI 兼容）API 封装\n+ // services/DataService.js - 智谱AI (ZhipuAI) API 封装\n  \n  const apiKey = process.env.ZHIPU_API_KEY;\n- // 根据你的需求可调整模型名称（这里示例写一个常见 OpenAI 兼容模型名）\n- const defaultModel = 'gpt-3.5-turbo';\n+ // 智谱官方示例使用 glm-4 / glm-4-flash 等模型，这里默认用 glm-4-flash\n+ const defaultModel = 'glm-4-flash';\n  \n  if (!apiKey) {",
+        "oldStart": 1,
+        "newStart": 1,
+        "oldLines": 7,
+        "newLines": 7,
+        "linesRemoved": 3,
+        "linesAdded": 3
+      },
+      {
+        "diffString": "  \n  /**\n-  * 核心 API 调用函数 - 调用 QnAIGC OpenAI 兼容接口\n+  * 核心 API 调用函数 - 调用智谱AI\n   * @param {Object} params\n   * @param {Array} params.messages - OpenAI 兼容格式的消息数组 [{ role: 'system'|'user'|'assistant', content: '...' }]",
+        "oldStart": 10,
+        "newStart": 10,
+        "oldLines": 5,
+        "newLines": 5,
+        "linesRemoved": 1,
+        "linesAdded": 1
+      },
+      {
+        "diffString": "  \n    try {\n-     const url = 'https://api.qnaigc.com/v1/chat/completions';\n+     const url = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';\n      \n      const body = {",
+        "oldStart": 26,
+        "newStart": 26,
+        "oldLines": 5,
+        "newLines": 5,
+        "linesRemoved": 1,
+        "linesAdded": 1
+      },
+      {
+        "diffString": "      const data = await response.json();\n  \n-     // OpenAI 兼容返回格式：{ choices: [{ message: { content: \"...\" } }] }\n+     // 智谱AI 返回格式：{ choices: [{ message: { content: \"...\" } }] }\n      const text = data?.choices?.[0]?.message?.content || '';\n  \n      if (!text) {\n-       throw new Error('QnAIGC 返回内容为空或无法解析。');\n+       throw new Error('ZhipuAI 返回内容为空或无法解析。');\n      }\n  \n      return text;\n    } catch (error) {\n-     console.error('QnAIGC API Error:', error);\n+     console.error('ZhipuAI API Error:', error);\n      throw new Error(&#96;[AI系统故障] 核心议会连接中断。Error: ${error.message}&#96;);\n    }",
+        "oldStart": 51,
+        "newStart": 51,
+        "oldLines": 14,
+        "newLines": 14,
+        "linesRemoved": 3,
+        "linesAdded": 3
+      }
+    ],
+    "editor": "EDITOR_AI"
+  },
+  "shouldAutoFixLints": true,
+  "resultForModel": "Success. Updated the following files:\nM services/DataService.js",
+  "contentsAfterEdit": "// services/DataService.js - 智谱AI (ZhipuAI) API 封装\n\nconst apiKey = process.env.ZHIPU_API_KEY;\n// 智谱官方示例使用 glm-4 / glm-4-flash 等模型，这里默认用 glm-4-flash\nconst defaultModel = 'glm-4-flash';\n\nif (!apiKey) {\n  console.error('[配置警告] ZHIPU_API_KEY 未设置。');\n}\n\n/**\n * 核心 API 调用函数 - 调用智谱AI\n * @param {Object} params\n * @param {Array} params.messages - OpenAI 兼容格式的消息数组 [{ role: 'system'|'user'|'assistant', content: '...' }]\n * @param {number} params.temperature - 温度参数，默认 0.7\n * @param {string} params.model - 模型名称，默认 'glm-4-flash'\n */\nexport async function callZhipuApi({\n  messages,\n  temperature = 0.7,\n  model = defaultModel\n}) {\n  if (!apiKey) {\n    throw new Error('[配置错误] 无法连接 AI 核心：ZHIPU_API_KEY 未设置。');\n  }\n\n  try {\n    const url = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';\n    \n    const body = {\n      model,\n      messages,\n      temperature\n    };\n\n    const response = await fetch(url, {\n      method: 'POST',\n      headers: {\n        'Authorization': &#96;Bearer ${apiKey}&#96;,\n        'Content-Type': 'application/json'\n      },\n      body: JSON.stringify(body)\n    });\n\n    if (!response.ok) {\n      const errorText = await response.text();\n      console.error('ZhipuAI HTTP Error:', response.status, errorText);\n      throw new Error(&#96;ZhipuAI HTTP ${response.status}: ${errorText}&#96;);\n    }\n\n    const data = await response.json();\n\n    // 智谱AI 返回格式：{ choices: [{ message: { content: \"...\" } }] }\n    const text = data?.choices?.[0]?.message?.content || '';\n\n    if (!text) {\n      throw new Error('ZhipuAI 返回内容为空或无法解析。');\n    }\n\n    return text;\n  } catch (error) {\n    console.error('ZhipuAI API Error:', error);\n    throw new Error(&#96;[AI系统故障] 核心议会连接中断。Error: ${error.message}&#96;);\n  }\n}\n"
+}
+```
+User decision: **accepted**
+
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `/Volumes/D/finalproject/services/DataService.js`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+已经帮你把后端完全改回智谱AI：
+
+- `services/DataService.js` 现在使用：
+  - URL: `https://open.bigmodel.cn/api/paas/v4/chat/completions`
+  - 模型: `glm-4-flash`
+  - 环境变量名仍然是 `ZHIPU_API_KEY`
+
+你现在只需要：
+
+1. 在 `.env.local` 中写入正确的智谱 key（不加引号）：
+   ```bash
+   ZHIPU_API_KEY=你的智谱AI密钥
+   ```
+2. 在 Vercel 环境变量里也把 `ZHIPU_API_KEY` 的值改成同一个智谱 key，然后重新部署。
+
+改完本地 key 后，记得重启 `npm run dev` 再测试。
+
+---
+
