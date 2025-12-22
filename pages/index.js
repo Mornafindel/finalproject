@@ -1,6 +1,54 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes, createGlobalStyle } from 'styled-components';
 
+// 错误边界组件
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error('React Error Boundary caught an error:', error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div style={{
+                    padding: '20px',
+                    color: '#fff',
+                    background: '#000',
+                    fontFamily: 'Courier New, monospace',
+                    textAlign: 'center'
+                }}>
+                    <h2>系统错误</h2>
+                    <p>XYLON系统遇到问题，正在重启...</p>
+                    <button
+                        onClick={() => this.setState({ hasError: false, error: null })}
+                        style={{
+                            padding: '10px 20px',
+                            background: '#fff',
+                            color: '#000',
+                            border: 'none',
+                            cursor: 'pointer',
+                            marginTop: '10px'
+                        }}
+                    >
+                        重试
+                    </button>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
 // 外星文字字符集
 const ALIEN_CHARS = '█▓▒░▯▬▭▮▰▱▲△▴▵▶▷▸▹►▻▼▽▾▿◀◁◂◃◄◅◆◇◈◉◊○◌◍◎●◐◑◒◓◔◕◖◗◘◙◚◛◜◝◞◟◠◡◢◣◤◥◦◧◨◩◪◫◬◭◮◯◰◱◲◳◴◵◶◷◸◹◺◻◼◽◾◿';
 
@@ -195,7 +243,7 @@ const LilaFilter = () => (
 // 3. 核心逻辑
 // =======================================================
 
-export default function Chat() {
+function Chat() {
     const [input, setInput] = useState('');
     const [history, setHistory] = useState([
         { role: 'ai', content: 'CONNECTION ESTABLISHED. WAITING FOR SIGNAL.' }
@@ -211,26 +259,42 @@ export default function Chat() {
 
     // 加载本地存储的数据
     useEffect(() => {
-        const savedThoughtsHistory = localStorage.getItem('alienThoughtsHistory');
-        const savedThoughtsCount = localStorage.getItem('alienThoughtsCount');
+        try {
+            const savedThoughtsHistory = localStorage.getItem('alienThoughtsHistory');
+            const savedThoughtsCount = localStorage.getItem('alienThoughtsCount');
 
-        // console.log('Loading from localStorage:', { savedThoughtsHistory, savedThoughtsCount });
+            // console.log('Loading from localStorage:', { savedThoughtsHistory, savedThoughtsCount });
 
-        if (savedThoughtsHistory) {
-            try {
-                const parsedHistory = JSON.parse(savedThoughtsHistory);
-                // console.log('Parsed thoughts history:', parsedHistory);
-                setThoughtsHistory(parsedHistory);
-                if (parsedHistory.length > 0) {
-                    setThoughts(parsedHistory[parsedHistory.length - 1].content || parsedHistory[parsedHistory.length - 1]);
+            if (savedThoughtsHistory) {
+                try {
+                    const parsedHistory = JSON.parse(savedThoughtsHistory);
+                    // 验证数据格式
+                    if (Array.isArray(parsedHistory)) {
+                        // console.log('Parsed thoughts history:', parsedHistory);
+                        setThoughtsHistory(parsedHistory);
+                        if (parsedHistory.length > 0) {
+                            const lastThought = parsedHistory[parsedHistory.length - 1];
+                            const lastContent = typeof lastThought === 'string' ? lastThought : (lastThought && lastThought.content ? lastThought.content : 'IDLE...');
+                            setThoughts(lastContent);
+                        }
+                    } else {
+                        console.warn('Invalid thoughtsHistory format, resetting to empty array');
+                        setThoughtsHistory([]);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse thoughts history:', e);
+                    setThoughtsHistory([]);
+                    setThoughts('IDLE...');
                 }
-            } catch (e) {
-                console.error('Failed to parse thoughts history:', e);
             }
-        }
 
-        if (savedThoughtsCount) {
-            setThoughtsCount(parseInt(savedThoughtsCount, 10) || 0);
+            if (savedThoughtsCount) {
+                const count = parseInt(savedThoughtsCount, 10);
+                setThoughtsCount(isNaN(count) ? 0 : count);
+            }
+        } catch (storageError) {
+            console.error('localStorage access error:', storageError);
+            // 如果localStorage不可用，继续正常运行
         }
 
         setDataLoaded(true);
@@ -238,8 +302,13 @@ export default function Chat() {
 
     // 保存数据到本地存储
     useEffect(() => {
-        localStorage.setItem('alienThoughtsHistory', JSON.stringify(thoughtsHistory));
-        localStorage.setItem('alienThoughtsCount', thoughtsCount.toString());
+        try {
+            localStorage.setItem('alienThoughtsHistory', JSON.stringify(thoughtsHistory));
+            localStorage.setItem('alienThoughtsCount', thoughtsCount.toString());
+        } catch (storageError) {
+            console.error('Failed to save to localStorage:', storageError);
+            // 如果localStorage不可用，继续正常运行
+        }
     }, [thoughtsHistory, thoughtsCount]);
 
     useEffect(() => {
@@ -399,7 +468,7 @@ export default function Chat() {
                                 thoughtsHistory.length === 0 ? "IDLE..." : (
                                     (() => {
                                         // console.log('Rendering thoughtsHistory:', thoughtsHistory);
-                                        return                                 thoughtsHistory.slice(-5).map((thought, index) => (
+                                        return thoughtsHistory.slice(-5).map((thought, index) => (
                                     <div key={index} style={{
                                         marginBottom: '12px',
                                         paddingBottom: '6px',
@@ -411,7 +480,7 @@ export default function Chat() {
                                             {thought.isReflection ? ' 反思' : ''}
                                         </div>
                                         <div style={{fontSize: '0.9rem', lineHeight: '1.4'}}>
-                                            {typeof thought === 'string' ? thought : (thought.content || '无内容')}
+                                            {typeof thought === 'string' ? thought : (thought && thought.content ? thought.content : '无内容')}
                                         </div>
                                     </div>
                                 ))
@@ -423,5 +492,13 @@ export default function Chat() {
                 </ThoughtPanel>
             </MainLayout>
         </>
+    );
+}
+
+export default function ChatApp() {
+    return (
+        <ErrorBoundary>
+            <Chat />
+        </ErrorBoundary>
     );
 }
