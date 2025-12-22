@@ -495,10 +495,86 @@ function Chat() {
     );
 }
 
+// 简化版组件，避免复杂的状态管理导致的问题
+function SimpleChat() {
+    const [input, setInput] = useState('');
+    const [history, setHistory] = useState([
+        { role: 'ai', content: 'CONNECTION ESTABLISHED. WAITING FOR SIGNAL.' }
+    ]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!input.trim() || isLoading) return;
+
+        const userInput = input.trim();
+        setInput('');
+        setIsLoading(true);
+
+        setHistory(prev => [...prev, { role: 'user', content: userInput }]);
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userInput }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setHistory(prev => [...prev, { role: 'ai', content: data.reply || 'SIGNAL LOST.' }]);
+        } catch (error) {
+            console.error('Chat error:', error);
+            setHistory(prev => [...prev, { role: 'ai', content: 'SIGNAL LOST.' }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <>
+            <GlobalStyle />
+            <MainLayout>
+                <LeftSection>
+                    <FaceArea>
+                        {isLoading ? '◉_◉' : '◉_◉'}
+                    </FaceArea>
+                    <ChatWindow>
+                        {history.map((msg, index) => (
+                            <Message key={index}>
+                                <RoleTag>{msg.role === 'user' ? 'USER' : 'XYLON'}</RoleTag>
+                                <div>{msg.content}</div>
+                            </Message>
+                        ))}
+                    </ChatWindow>
+                    <InputArea onSubmit={handleSubmit}>
+                        <Input
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="INPUT COMMAND..."
+                            disabled={isLoading}
+                        />
+                    </InputArea>
+                </LeftSection>
+
+                <ThoughtPanel>
+                    <ThoughtTitle>Cognitive Log</ThoughtTitle>
+                    <ThoughtContent>
+                        {isLoading ? "ANALYZING..." : "IDLE..."}
+                    </ThoughtContent>
+                </ThoughtPanel>
+            </MainLayout>
+        </>
+    );
+}
+
 export default function ChatApp() {
     return (
         <ErrorBoundary>
-            <Chat />
+            <SimpleChat />
         </ErrorBoundary>
     );
 }
