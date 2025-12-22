@@ -1,31 +1,57 @@
 // services/AlienCouncilService.js
 // 负责把“外星议会”的角色设定 + 历史对话，打包给智谱AI API 调用
 
-import { buildApiMessages } from './RoleService';
+import { buildApiMessages, buildThoughtGenerationMessages, buildReplyGenerationMessages } from './RoleService';
 import { callZhipuApi } from './DataService';
 
-export async function processAlienResponse(userInput) {
+/**
+ * 第一步：生成思维解构
+ */
+export async function generateThoughts(userInput, thoughtsHistory = []) {
   try {
-    // 当前只有单轮输入，如需多轮对话，可在这里把前端传来的 history 一并传入
-    const history = [
-      {
-        role: 'user',
-        content: userInput
-      }
-    ];
-
-    // 1. 基于角色设定 + 记忆，构造 messages 数组（包含 system message）
-    const { messages } = await buildApiMessages(history);
-
-    // 2. 调用封装好的智谱AI API
-    const text = await callZhipuApi({
-      messages
-    });
-
+    const { messages } = await buildThoughtGenerationMessages(userInput, thoughtsHistory);
+    const text = await callZhipuApi({ messages });
     return text || '';
   } catch (err) {
+    console.error('Thought Generation Error:', err);
+    throw new Error(err?.message || '[AI系统故障] 思维解构模块连接中断。');
+  }
+}
+
+/**
+ * 第二步：基于思维解构生成正式回复
+ */
+export async function generateReply(userInput, thoughts, thoughtsHistory = []) {
+  try {
+    const { messages } = await buildReplyGenerationMessages(userInput, thoughts, thoughtsHistory);
+    console.log('[DEBUG] Reply generation messages:', JSON.stringify(messages, null, 2));
+    const text = await callZhipuApi({ messages });
+    console.log('[DEBUG] Reply generation result length:', text?.length || 0);
+    console.log('[DEBUG] Reply generation result preview:', text?.substring(0, 200) || 'EMPTY');
+    return text || '';
+  } catch (err) {
+    console.error('Reply Generation Error:', err);
+    throw new Error(err?.message || '[AI系统故障] 正式回复模块连接中断。');
+  }
+}
+
+/**
+ * 两步生成：先思维解构，再正式回复
+ */
+export async function processAlienResponse(userInput, thoughtsHistory = []) {
+  try {
+    // 第一步：生成思维解构
+    const thoughts = await generateThoughts(userInput, thoughtsHistory);
+
+    // 第二步：基于思维解构生成正式回复
+    const reply = await generateReply(userInput, thoughts, thoughtsHistory);
+
+    return {
+      thoughts: thoughts.trim(),
+      reply: reply.trim()
+    };
+  } catch (err) {
     console.error('Alien Council ZhipuAI Error:', err);
-    // 将底层错误信息透传出去，方便前端展示和调试
     throw new Error(err?.message || '[AI系统故障] 核心议会连接中断。');
   }
 }

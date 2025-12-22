@@ -17,7 +17,7 @@ if (!apiKey) {
  */
 export async function callZhipuApi({
   messages,
-  temperature = 0.7,
+  temperature = 0.4,
   model = defaultModel
 }) {
   if (!apiKey) {

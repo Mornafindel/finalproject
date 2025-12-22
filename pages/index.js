@@ -1,158 +1,309 @@
-// pages/index.js
-
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes, createGlobalStyle } from 'styled-components';
 
-// =======================================================
-// 1. 全局样式 (Global Styles) - 实现 Low-poly 视觉效果
-// =======================================================
+// 外星文字字符集
+const ALIEN_CHARS = '█▓▒░▯▬▭▮▰▱▲△▴▵▶▷▸▹►▻▼▽▾▿◀◁◂◃◄◅◆◇◈◉◊○◌◍◎●◐◑◒◓◔◕◖◗◘◙◚◛◜◝◞◟◠◡◢◣◤◥◦◧◨◩◪◫◬◭◮◯◰◱◲◳◴◵◶◷◸◹◺◻◼◽◾◿';
+
+// --- 动画优化：使用 steps() 产生断续的像素跳动感 ---
+const pixelFlicker = keyframes`
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.92; }
+`;
+
+const subtleDistort = keyframes`
+    0% { transform: translate(0,0); }
+    20% { transform: translate(1px, -1px); }
+    40% { transform: translate(-1px, 1px); }
+    60% { transform: translate(1px, 1px); }
+    80% { transform: translate(-1px, -1px); }
+    100% { transform: translate(0,0); }
+`;
 
 const GlobalStyle = createGlobalStyle`
     body {
         margin: 0;
         padding: 0;
-        /* Low-poly 风格的背景和字体 */
-        background-color: #212529; /* 深空灰色 */
-        color: #C0C0C0; /* 银色文本 */
-        font-family: 'Pixelated', 'Courier New', monospace; 
-        /* 提示：如果需要精确的像素字体效果，您可能需要导入一个像素字体 */
+        background-color: #000;
+        color: #fff;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        /* 优化文字像素密度 - 针对英文字符 */
+        font-weight: normal;
+        font-variant-numeric: tabular-nums;
+        text-rendering: optimizeLegibility;
+        font-smooth: never;
+        -webkit-font-smoothing: none;
+        letter-spacing: 0.01em;
+        line-height: 1.25;
+        /* 应用 1-bit 滤镜 */
+        filter: url(#pixel-dither);
+        overflow: hidden;
+    }
+
+    /* 模拟旧屏幕的扫描线 */
+    body::after {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+        background-size: 100% 4px;
+        z-index: 999;
+        pointer-events: none;
     }
 `;
 
-// 脉冲动画，用于 AI 响应或活动指示
-const pulse = keyframes`
-    0% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(100, 255, 218, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0); }
+// =======================================================
+// 1. 样式组件
+// =======================================================
+
+const MainLayout = styled.div`
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    padding: 15px;
+    box-sizing: border-box;
+    gap: 15px;
+    background: #000;
 `;
 
-// =======================================================
-// 2. 组件样式 (Styled Components)
-// =======================================================
-
-const Container = styled.div`
+const LeftSection = styled.div`
+    flex: 1.2;
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    box-sizing: border-box;
-    /* Low-poly 边框效果 */
-    border: 3px solid #64FFDA; /* 青色霓虹 */
-    border-radius: 8px;
-    background-color: #1A1A1A; /* 略深的背景 */
+    border: 2px solid #fff;
+    background: #000;
+    position: relative;
 `;
 
-const Header = styled.h1`
-    text-align: center;
-    color: #64FFDA;
-    font-size: 1.5em;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #64FFDA;
-    padding-bottom: 10px;
+// 莱拉风格的“脸部”显示区
+const FaceArea = styled.div`
+    height: 150px;
+    border-bottom: 2px solid #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 4rem;
+    overflow: hidden;
+    background: #000;
+    animation: ${subtleDistort} 4s steps(4) infinite;
+`;
+
+const ThoughtPanel = styled.div`
+    flex: 0.8;
+    border: 2px solid #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background: #000;
+`;
+
+const ThoughtTitle = styled.h2`
+    font-size: 0.9rem;
+    border-bottom: 2px solid #fff;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+`;
+
+const ThoughtContent = styled.div`
+    font-size: 0.9rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    flex: 1;
+    overflow-y: auto;
+    letter-spacing: 0.02em;
+    font-weight: normal;
+    animation: ${pixelFlicker} 0.2s steps(2) infinite;
 `;
 
 const ChatWindow = styled.div`
     flex-grow: 1;
     overflow-y: auto;
-    padding: 10px;
-    border: 1px solid #444;
-    margin-bottom: 15px;
-    /* 模拟旧式 CRT 屏幕的滚动条 */
-    scrollbar-color: #64FFDA #1A1A1A;
-    scrollbar-width: thin;
+    padding: 15px;
 `;
 
 const Message = styled.div`
     margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 4px;
-    background-color: ${props => (props.role === 'user' ? '#333' : '#2A2A2A')};
-    border-left: 3px solid ${props => (props.role === 'user' ? '#C0C0C0' : '#64FFDA')};
+    border-left: 2px solid #fff;
+    padding-left: 10px;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+    font-weight: normal;
 `;
 
-const RoleTag = styled.span`
-    font-weight: bold;
-    color: ${props => (props.role === 'user' ? '#C0C0C0' : '#64FFDA')};
-    margin-right: 8px;
+const RoleTag = styled.div`
+    font-size: 0.7rem;
+    margin-bottom: 5px;
     text-transform: uppercase;
+    background: #fff;
+    color: #000;
+    display: inline-block;
+    padding: 0 4px;
+`;
+
+const DecodingText = styled.div`
+    font-size: 0.95rem;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+    font-weight: normal;
+    word-break: break-all;
 `;
 
 const InputArea = styled.form`
     display: flex;
-    border-top: 1px solid #444;
-    padding-top: 15px;
+    padding: 15px;
+    border-top: 2px solid #fff;
 `;
 
 const Input = styled.input`
-    flex-grow: 1;
-    padding: 10px;
-    margin-right: 10px;
-    background-color: #1A1A1A;
-    border: 1px solid #64FFDA;
-    color: #C0C0C0;
-    font-size: 1em;
-    &:focus {
-        outline: none;
-        border-color: #FFFF00; /* 聚焦时变为黄色 */
-    }
-`;
-
-const SendButton = styled.button`
-    padding: 10px 15px;
-    background-color: #64FFDA;
-    color: #1A1A1A;
+    flex: 1;
+    background: transparent;
     border: none;
-    cursor: pointer;
-    text-transform: uppercase;
-    &:hover {
-        background-color: #3C7A6D;
-    }
-    &:disabled {
-        background-color: #555;
-        cursor: not-allowed;
-    }
-`;
-
-const LoadingIndicator = styled.div`
-    text-align: center;
-    padding: 10px;
-    color: #64FFDA;
-    /* Low-poly 脉冲效果 */
-    span {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        background-color: #64FFDA;
-        border-radius: 50%;
-        margin: 0 5px;
-        animation: ${pulse} 1.5s infinite;
-    }
+    color: #fff;
+    font-family: inherit;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+    font-weight: normal;
+    &:focus { outline: none; }
 `;
 
 // =======================================================
-// 3. 主要组件 (Chat Interface)
+// 2. 1-bit 像素滤镜组件
 // =======================================================
 
-const initialHistory = [
-    { role: 'ai', content: '（系统启动声）能量态稳定。我是外星天文学家 XYLON。你的观测请求编号是？' }
-];
+const LilaFilter = () => (
+    <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+      <filter id="pixel-dither" x="0" y="0" width="100%" height="100%">
+        {/* 1. 极小步长采样：只在边缘产生锯齿，不破坏文字主体 */}
+        <feFlood x="0" y="0" height="0.2" width="0.2" />
+        <feComposite width="1" height="1" />
+        <feTile result="tiles" />
+        <feComposite in="SourceGraphic" in2="tiles" operator="in" />
+        
+        {/* 2. 锐化与对比度：让黑白更纯粹，文字更硬朗 */}
+        <feComponentTransfer>
+          <feFuncR type="discrete" tableValues="0 1" />
+          <feFuncG type="discrete" tableValues="0 1" />
+          <feFuncB type="discrete" tableValues="0 1" />
+        </feComponentTransfer>
+      </filter>
+    </svg>
+  );
+
+// =======================================================
+// 3. 核心逻辑
+// =======================================================
 
 export default function Chat() {
     const [input, setInput] = useState('');
-    const [history, setHistory] = useState(initialHistory);
+    const [history, setHistory] = useState([
+        { role: 'ai', content: 'CONNECTION ESTABLISHED. WAITING FOR SIGNAL.' }
+    ]);
+    const [thoughts, setThoughts] = useState('IDLE...');
+    const [thoughtsHistory, setThoughtsHistory] = useState([]);
+    const [thoughtsCount, setThoughtsCount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [dataLoaded, setDataLoaded] = useState(false);
+    const [decodingText, setDecodingText] = useState('');
+    const [decodingIndex, setDecodingIndex] = useState(0);
     const chatWindowRef = useRef(null);
 
-    // 滚动到底部
+    // 加载本地存储的数据
+    useEffect(() => {
+        const savedThoughtsHistory = localStorage.getItem('alienThoughtsHistory');
+        const savedThoughtsCount = localStorage.getItem('alienThoughtsCount');
+
+        // console.log('Loading from localStorage:', { savedThoughtsHistory, savedThoughtsCount });
+
+        if (savedThoughtsHistory) {
+            try {
+                const parsedHistory = JSON.parse(savedThoughtsHistory);
+                // console.log('Parsed thoughts history:', parsedHistory);
+                setThoughtsHistory(parsedHistory);
+                if (parsedHistory.length > 0) {
+                    setThoughts(parsedHistory[parsedHistory.length - 1].content || parsedHistory[parsedHistory.length - 1]);
+                }
+            } catch (e) {
+                console.error('Failed to parse thoughts history:', e);
+            }
+        }
+
+        if (savedThoughtsCount) {
+            setThoughtsCount(parseInt(savedThoughtsCount, 10) || 0);
+        }
+
+        setDataLoaded(true);
+    }, []);
+
+    // 保存数据到本地存储
+    useEffect(() => {
+        localStorage.setItem('alienThoughtsHistory', JSON.stringify(thoughtsHistory));
+        localStorage.setItem('alienThoughtsCount', thoughtsCount.toString());
+    }, [thoughtsHistory, thoughtsCount]);
+
     useEffect(() => {
         if (chatWindowRef.current) {
             chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
         }
-    }, [history]);
+    }, [history, decodingText, decodingIndex]);
 
-    // 核心 API 调用函数
+    const performSelfReflection = async (currentThoughts) => {
+        try {
+            // 获取最近10句thoughts进行反思
+            const recentThoughts = thoughtsHistory.slice(-9); // 获取前9句 + 当前这一句 = 10句
+            recentThoughts.push({
+                content: currentThoughts,
+                timestamp: new Date().toISOString(),
+                userInput: input
+            });
+
+            const response = await fetch('/api/reflection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    thoughtsHistory: recentThoughts,
+                    totalThoughtsCount: thoughtsCount + 1
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.reflection) {
+                    // 添加反思到thoughts历史
+                    setThoughtsHistory(prev => [...prev, {
+                        content: data.reflection,
+                        timestamp: new Date().toISOString(),
+                        isReflection: true
+                    }]);
+
+                    // 更新当前显示的thoughts为反思内容
+                    setThoughts(data.reflection);
+                }
+            }
+        } catch (error) {
+            console.error('Self-reflection failed:', error);
+        }
+    };
+
+    const startDecoding = (finalText) => {
+        setDecodingText(finalText);
+        setDecodingIndex(0);
+        let currentIdx = 0;
+
+        const interval = setInterval(() => {
+            currentIdx++;
+            setDecodingIndex(currentIdx);
+            if (currentIdx >= finalText.length) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    setHistory(prev => [...prev, { role: 'ai', content: finalText }]);
+                    setDecodingText('');
+                }, 500);
+            }
+        }, 50); // 加快解码速度，使其更具动感
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
@@ -160,49 +311,42 @@ export default function Chat() {
         const userInput = input.trim();
         setInput('');
         setIsLoading(true);
-
-        // 1. 更新 UI 历史记录
-        const updatedHistory = [...history, { role: 'user', content: userInput }];
-        setHistory(updatedHistory);
+        setHistory(prev => [...prev, { role: 'user', content: userInput }]);
 
         try {
-            // 2. 调用您的 Next.js API 路由
             const response = await fetch('/api/chat', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // 与后端 API /api/chat 的参数保持一致
                     message: userInput,
+                    thoughtsHistory: thoughtsHistory
                 }),
             });
-
-            // 先解析后端返回的 body，再根据其中的 error 提示具体问题
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data?.error || 'API 响应错误');
-            }
-            
-            // 3. 更新 AI 回复到历史记录
-            setHistory((prevHistory) => [
-                ...prevHistory,
-                { role: 'ai', content: data.reply }
-            ]);
+            const newThoughts = data.thoughts || 'NO DATA';
+            setThoughts(newThoughts);
 
-            // 4. 处理退出逻辑（如果 AI 或用户触发了退出）
-            if (data.exit) {
-                console.log('Conversation ended by AI or User.');
-                // 可以在此禁用输入框或显示结束消息
+            // 添加到thoughts历史 - 包含用户输入和AI的学习过程
+            setThoughtsHistory(prev => [...prev, {
+                content: newThoughts,
+                timestamp: new Date().toISOString(),
+                userInput: userInput,
+                type: 'learning' // 标记为学习过程
+            }]);
+
+            // 增加计数器
+            const newCount = thoughtsCount + 1;
+            setThoughtsCount(newCount);
+
+            // 每10句thoughts进行自我反思
+            if (newCount % 10 === 0) {
+                await performSelfReflection(newThoughts);
             }
 
+            startDecoding(data.reply);
         } catch (error) {
-            console.error("Fetch Error:", error);
-            setHistory((prevHistory) => [
-                ...prevHistory,
-                { role: 'ai', content: `[错误：数据流中断。无法解析。错误信息: ${error.message}]` }
-            ]);
+            setHistory(prev => [...prev, { role: 'ai', content: 'SIGNAL LOST.' }]);
         } finally {
             setIsLoading(false);
         }
@@ -210,39 +354,74 @@ export default function Chat() {
 
     return (
         <>
+            <LilaFilter />
             <GlobalStyle />
-            <Container>
-                <Header>🌌 外星天文学家 XYLON - 通讯模块 1.0</Header>
-                
-                <ChatWindow ref={chatWindowRef}>
-                    {history.map((msg, index) => (
-                        <Message key={index} role={msg.role}>
-                            <RoleTag role={msg.role}>
-                                {msg.role === 'user' ? '操作员' : 'XYLON'}
-                            </RoleTag>
-                            {msg.content}
-                        </Message>
-                    ))}
-                    {isLoading && (
-                        <LoadingIndicator>
-                            XYLON 正在处理信息流 <span></span>
-                        </LoadingIndicator>
-                    )}
-                </ChatWindow>
-                
-                <InputArea onSubmit={handleSubmit}>
-                    <Input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder={isLoading ? "等待 XYLON 回应..." : "输入你的观测请求..."}
-                        disabled={isLoading}
-                    />
-                    <SendButton type="submit" disabled={isLoading}>
-                        发送
-                    </SendButton>
-                </InputArea>
-            </Container>
+            <MainLayout>
+                <LeftSection>
+                    <FaceArea>
+                        {isLoading ? 
+                            ALIEN_CHARS[Math.floor(Math.random() * ALIEN_CHARS.length)] : 
+                            '◉_◉'}
+                    </FaceArea>
+                    <ChatWindow ref={chatWindowRef}>
+                        {history.map((msg, index) => (
+                            <Message key={index}>
+                                <RoleTag>{msg.role === 'user' ? 'USER' : 'XYLON'}</RoleTag>
+                                <div>{msg.content}</div>
+                            </Message>
+                        ))}
+                        {decodingText && (
+                            <Message>
+                                <RoleTag>XYLON</RoleTag>
+                                <DecodingText>
+                                    {decodingText.split('').map((char, i) => 
+                                        i < decodingIndex ? char : ALIEN_CHARS[Math.floor(Math.random() * ALIEN_CHARS.length)]
+                                    )}
+                                </DecodingText>
+                            </Message>
+                        )}
+                    </ChatWindow>
+                    <InputArea onSubmit={handleSubmit}>
+                        <Input 
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="INPUT COMMAND..."
+                            disabled={isLoading}
+                        />
+                    </InputArea>
+                </LeftSection>
+
+                <ThoughtPanel>
+                    <ThoughtTitle>Cognitive Log</ThoughtTitle>
+                    <ThoughtContent>
+                        {isLoading ? "ANALYZING..." : (
+                            !dataLoaded ? "LOADING..." : (
+                                thoughtsHistory.length === 0 ? "IDLE..." : (
+                                    (() => {
+                                        // console.log('Rendering thoughtsHistory:', thoughtsHistory);
+                                        return                                 thoughtsHistory.slice(-5).map((thought, index) => (
+                                    <div key={index} style={{
+                                        marginBottom: '12px',
+                                        paddingBottom: '6px',
+                                        borderBottom: index < thoughtsHistory.slice(-5).length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                                        color: thought.isReflection ? '#00ffff' : 'inherit'
+                                    }}>
+                                        <div style={{fontSize: '0.75rem', opacity: 0.7, marginBottom: '4px'}}>
+                                            [{thought.timestamp ? new Date(thought.timestamp).toLocaleTimeString() : '未知时间'}]
+                                            {thought.isReflection ? ' 反思' : ''}
+                                        </div>
+                                        <div style={{fontSize: '0.9rem', lineHeight: '1.4'}}>
+                                            {typeof thought === 'string' ? thought : (thought.content || '无内容')}
+                                        </div>
+                                    </div>
+                                ))
+                                    })()
+                                )
+                            )
+                        )}
+                    </ThoughtContent>
+                </ThoughtPanel>
+            </MainLayout>
         </>
     );
 }
