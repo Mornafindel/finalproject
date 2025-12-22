@@ -502,7 +502,7 @@ function SimpleChat() {
         { role: 'ai', content: 'CONNECTION ESTABLISHED. WAITING FOR SIGNAL.' }
     ]);
     const [isLoading, setIsLoading] = useState(false);
-    const [currentThought, setCurrentThought] = useState('IDLE...');
+    const [thoughtsHistory, setThoughtsHistory] = useState([]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -515,9 +515,6 @@ function SimpleChat() {
         setHistory(prev => [...prev, { role: 'user', content: userInput }]);
 
         try {
-            // 显示思考开始
-            setCurrentThought('开始分析用户信号...');
-
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -530,15 +527,23 @@ function SimpleChat() {
 
             const data = await response.json();
 
-            // 显示最终思考结果
+            // 添加思考内容到历史记录
             if (data.thoughts) {
-                setCurrentThought(data.thoughts);
+                setThoughtsHistory(prev => [...prev, {
+                    content: data.thoughts,
+                    timestamp: new Date().toISOString(),
+                    userInput: userInput
+                }]);
             }
 
             setHistory(prev => [...prev, { role: 'ai', content: data.reply || 'SIGNAL LOST.' }]);
         } catch (error) {
             console.error('Chat error:', error);
-            setCurrentThought('分析过程中发生错误');
+            setThoughtsHistory(prev => [...prev, {
+                content: '分析过程中发生错误',
+                timestamp: new Date().toISOString(),
+                userInput: userInput
+            }]);
             setHistory(prev => [...prev, { role: 'ai', content: 'SIGNAL LOST.' }]);
         } finally {
             setIsLoading(false);
@@ -574,7 +579,24 @@ function SimpleChat() {
                 <ThoughtPanel>
                     <ThoughtTitle>Cognitive Log</ThoughtTitle>
                     <ThoughtContent>
-                        {isLoading ? "ANALYZING..." : currentThought}
+                        {isLoading ? "ANALYZING..." : (
+                            thoughtsHistory.length === 0 ? "IDLE..." : (
+                                thoughtsHistory.slice(-5).map((thought, index) => (
+                                    <div key={index} style={{
+                                        marginBottom: '8px',
+                                        paddingBottom: '4px',
+                                        borderBottom: index < thoughtsHistory.slice(-5).length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none'
+                                    }}>
+                                        <div style={{fontSize: '0.75rem', opacity: 0.7, marginBottom: '2px'}}>
+                                            [{thought.timestamp ? new Date(thought.timestamp).toLocaleTimeString() : '未知时间'}]
+                                        </div>
+                                        <div style={{fontSize: '0.85rem', lineHeight: '1.4'}}>
+                                            {thought.content}
+                                        </div>
+                                    </div>
+                                ))
+                            )
+                        )}
                     </ThoughtContent>
                 </ThoughtPanel>
             </MainLayout>
