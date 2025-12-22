@@ -502,6 +502,7 @@ function SimpleChat() {
         { role: 'ai', content: 'CONNECTION ESTABLISHED. WAITING FOR SIGNAL.' }
     ]);
     const [isLoading, setIsLoading] = useState(false);
+    const [currentThought, setCurrentThought] = useState('IDLE...');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -514,6 +515,9 @@ function SimpleChat() {
         setHistory(prev => [...prev, { role: 'user', content: userInput }]);
 
         try {
+            // 显示思考开始
+            setCurrentThought('开始分析用户信号...');
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -525,9 +529,16 @@ function SimpleChat() {
             }
 
             const data = await response.json();
+
+            // 显示最终思考结果
+            if (data.thoughts) {
+                setCurrentThought(data.thoughts);
+            }
+
             setHistory(prev => [...prev, { role: 'ai', content: data.reply || 'SIGNAL LOST.' }]);
         } catch (error) {
             console.error('Chat error:', error);
+            setCurrentThought('分析过程中发生错误');
             setHistory(prev => [...prev, { role: 'ai', content: 'SIGNAL LOST.' }]);
         } finally {
             setIsLoading(false);
@@ -563,7 +574,7 @@ function SimpleChat() {
                 <ThoughtPanel>
                     <ThoughtTitle>Cognitive Log</ThoughtTitle>
                     <ThoughtContent>
-                        {isLoading ? "ANALYZING..." : "IDLE..."}
+                        {isLoading ? "ANALYZING..." : currentThought}
                     </ThoughtContent>
                 </ThoughtPanel>
             </MainLayout>
